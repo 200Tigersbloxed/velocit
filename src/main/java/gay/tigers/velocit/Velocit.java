@@ -10,6 +10,7 @@ import gg.playit.api.ApiClient;
 import gg.playit.api.actions.CreateTunnel;
 import gg.playit.api.models.*;
 import gg.playit.control.PlayitControlChannel;
+import gg.playit.minecraft.PlayitConnectionTracker;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -28,6 +29,8 @@ public class Velocit {
     public final ApiClient unauthenticatedApiClient = new ApiClient(null);
     private ApiClient playitApiClient;
     PlayitControlChannel playitControlChannel;
+    final PlayitConnectionTracker playitConnectionTracker = new PlayitConnectionTracker();
+
 
     private final ProxyServer proxy;
     @Inject

@@ -55,7 +55,10 @@ class StatusRunnable implements Runnable{
                         if(!option.isPresent()) break;
                         ControlFeedReader.ControlFeed feed = option.get();
                         if(feed instanceof ControlFeedReader.NewClient newClient){
-
+                            String clientKey = newClient.peerAddr + "-" + newClient.connectAddr;
+                            if(velocit.playitConnectionTracker.addConnection(clientKey)){
+                                // TODO: Create TCPListener and deregister connection from connection tracker
+                            }
                         }
                     } catch (IOException e) {
                         velocit.logger.error(e.toString());
