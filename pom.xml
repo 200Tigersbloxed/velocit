@@ -6,7 +6,7 @@
 
     <groupId>gay.tigers</groupId>
     <artifactId>velocit</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0-pre</version>
     <packaging>jar</packaging>
 
     <name>velocit</name>
@@ -96,6 +96,7 @@
                                     <mainClass>com.tericcabrel.App</mainClass>
                                 </transformer>
                             </transformers>
+                            <shadedClassifierName>shaded</shadedClassifierName>
                         </configuration>
                     </execution>
                 </executions>
@@ -187,6 +188,7 @@
             <groupId>com.velocitypowered</groupId>
             <artifactId>velocity-proxy</artifactId>
             <version>3.0.1</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>

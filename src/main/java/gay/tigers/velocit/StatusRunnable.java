@@ -1,10 +1,11 @@
 package gay.tigers.velocit;
 
-import gg.playit.control.PlayitControlChannel;
 import gg.playit.messages.ControlFeedReader;
 import gg.playit.minecraft.utils.Hex;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -57,7 +58,14 @@ class StatusRunnable implements Runnable{
                         if(feed instanceof ControlFeedReader.NewClient newClient){
                             String clientKey = newClient.peerAddr + "-" + newClient.connectAddr;
                             if(velocit.playitConnectionTracker.addConnection(clientKey)){
-                                // TODO: Create TCPListener and deregister connection from connection tracker
+                                new VelocitTcpTunnel(
+                                        velocit.eventLoopGroup,
+                                        velocit.playitConnectionTracker,
+                                        clientKey,
+                                        velocit.proxy.getBoundAddress(),
+                                        new InetSocketAddress(InetAddress.getByAddress(newClient.claimAddress.ipBytes), Short.toUnsignedInt(newClient.claimAddress.portNumber)),
+                                        newClient.claimToken,
+                                        velocit.logger).start();
                             }
                         }
                     } catch (IOException e) {
@@ -66,11 +74,17 @@ class StatusRunnable implements Runnable{
                     break;
                 default:
                     cancel = true;
+                    velocit.logger.info("Unknown state: " + status.get() + ". Closing.");
                     break;
             }
             try {
-                Thread.sleep(3000);
-            } catch (InterruptedException ignored) {}
+                if(status.get() == 4){
+                    Thread.sleep(1);
+                }
+                else {
+                    Thread.sleep(3000);
+                }
+            } catch (InterruptedException ignored) { }
         }
     }
 }

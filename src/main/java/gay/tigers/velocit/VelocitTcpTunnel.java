@@ -1,7 +1,5 @@
 package gay.tigers.velocit;
 
-import com.velocitypowered.api.proxy.ProxyServer;
-import com.velocitypowered.proxy.VelocityServer;
 import gg.playit.minecraft.PlayitConnectionTracker;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
@@ -10,45 +8,33 @@ import io.netty.channel.*;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
-import java.util.logging.Logger;
 
 public class VelocitTcpTunnel {
-    static Logger log = Logger.getLogger(VelocitTcpTunnel.class.getName());
-
-    private final InetSocketAddress trueIp;
     private final EventLoopGroup group;
     private final String connectionKey;
     private final PlayitConnectionTracker tracker;
     private final InetSocketAddress minecraftServerAddress;
     private final InetSocketAddress tunnelClaimAddress;
     private final byte[] tunnelClaimToken;
-    private final VelocityServer server;
-
-    private final int connectionTimeoutSeconds;
+    private final org.slf4j.Logger log;
 
     public VelocitTcpTunnel(
-            InetSocketAddress trueIp,
             EventLoopGroup group,
             PlayitConnectionTracker tracker,
             String connectionKey,
             InetSocketAddress minecraftServerAddress,
             InetSocketAddress tunnelClaimAddress,
             byte[] tunnelClaimToken,
-            VelocityServer server,
-            int connectionTimeoutSeconds
+            org.slf4j.Logger log
     ) {
-        this.trueIp = trueIp;
         this.group = group;
         this.tracker = tracker;
         this.connectionKey = connectionKey;
         this.minecraftServerAddress = minecraftServerAddress;
         this.tunnelClaimAddress = tunnelClaimAddress;
         this.tunnelClaimToken = tunnelClaimToken;
-        this.server = server;
-        this.connectionTimeoutSeconds = connectionTimeoutSeconds;
+        this.log = log;
     }
 
     private SocketChannel minecraftChannel;
@@ -70,7 +56,7 @@ public class VelocitTcpTunnel {
         log.info("start connection to " + tunnelClaimAddress + " to claim client");
         clientBootstrap.connect().addListener((ChannelFutureListener) future -> {
             if (!future.isSuccess()) {
-                log.warning("failed to establish connection to tunnel claim" + tunnelClaimAddress);
+                log.warn("failed to establish connection to tunnel claim" + tunnelClaimAddress);
                 disconnected();
                 return;
             }
@@ -79,7 +65,7 @@ public class VelocitTcpTunnel {
 
             future.channel().writeAndFlush(Unpooled.wrappedBuffer(tunnelClaimToken)).addListener(f -> {
                 if (!f.isSuccess()) {
-                    log.warning("failed to send claim token");
+                    log.warn("failed to send claim token");
                 } else {
                     log.info("claim token sent");
                 }
@@ -115,10 +101,11 @@ public class VelocitTcpTunnel {
 
                 log.info("connection to tunnel server has been established");
 
-                if (addChannelToMinecraftServer()) {
+                // Not necessary apparently
+                /*if (addChannelToMinecraftServer()) {
                     log.info("added channel to minecraft server");
                     return;
-                }
+                }*/
 
                 var minecraftClient = new Bootstrap();
                 minecraftClient.group(group);
@@ -136,7 +123,7 @@ public class VelocitTcpTunnel {
                 log.info("connecting to minecraft server at " + minecraftServerAddress);
                 minecraftClient.connect().addListener((ChannelFutureListener) future -> {
                     if (!future.isSuccess()) {
-                        log.warning("failed to connect to local minecraft server");
+                        log.warn("failed to connect to local minecraft server");
                         ctx.disconnect();
                         disconnected();
                         return;
@@ -150,7 +137,7 @@ public class VelocitTcpTunnel {
                     } else {
                         future.channel().writeAndFlush(byteBuf).addListener(f -> {
                             if (!f.isSuccess()) {
-                                log.warning("failed to send data to minecraft server");
+                                log.warn("failed to send data to minecraft server");
                                 future.channel().disconnect();
                                 ctx.disconnect();
                                 disconnected();
@@ -168,7 +155,7 @@ public class VelocitTcpTunnel {
             /* proxy data */
             minecraftChannel.writeAndFlush(byteBuf).addListener(f -> {
                 if (!f.isSuccess()) {
-                    log.warning("failed to send data to minecraft server");
+                    log.warn("failed to send data to minecraft server");
                     minecraftChannel.disconnect();
                     tunnelChannel.disconnect();
                     disconnected();
@@ -179,123 +166,17 @@ public class VelocitTcpTunnel {
             });
         }
 
-        private boolean addChannelToMinecraftServer() {
-            /*ReflectionHelper reflect = new ReflectionHelper();
-            log.info("Reflect: " + reflect);
-
-            Object minecraftServer = reflect.getMinecraftServer(server);
-            if (minecraftServer == null) {
-                log.info("failed to get Minecraft server from Bukkit.getServer()");
-                return false;
-            }
-
-            Object serverConnection = reflect.serverConnectionFromMCServer(minecraftServer);
-            if (serverConnection == null) {
-                log.info("failed to get ServerConnection from Minecraft Server");
-                return false;
-            }
-
-            Object legacyPingHandler = reflect.newLegacyPingHandler(serverConnection);
-            if (legacyPingHandler == null) {
-                log.info("legacyPingHandler is null");
-                return false;
-            }
-
-            Object packetSplitter = reflect.newPacketSplitter();
-            if (packetSplitter == null) {
-                log.info("packetSplitter is null");
-                return false;
-            }
-
-            Object packetDecoder = reflect.newServerBoundPacketDecoder();
-            if (packetDecoder == null) {
-                log.info("packetDecoder is null");
-                return false;
-            }
-
-            Object packetPrepender = reflect.newPacketPrepender();
-            if (packetPrepender == null) {
-                log.info("packetPrepender is null");
-                return false;
-            }
-
-            Object packetEncoder = reflect.newClientBoundPacketEncoder();
-            if (packetEncoder == null) {
-                log.info("packetEncoder is null");
-                return false;
-            }
-
-            Integer rateLimitNullable = reflect.getRateLimitFromMCServer(minecraftServer);
-            if (rateLimitNullable == null) {
-                rateLimitNullable = 0;
-            }
-
-            int rateLimit = rateLimitNullable;
-
-            Object networkManager;
-            if (rateLimit > 0) {
-                networkManager = reflect.newNetworkManagerServer(rateLimit);
-            } else {
-                networkManager = reflect.newServerNetworkManager();
-            }
-
-            if (networkManager == null) {
-                log.info("networkManager is null");
-                return false;
-            }
-
-            Object handshakeListener = reflect.newHandshakeListener(minecraftServer, networkManager);
-            if (handshakeListener == null) {
-                log.info("handshakeListener is null");
-                return false;
-            }
-
-            if (!reflect.networkManagerSetListener(networkManager, handshakeListener)) {
-                log.info("failed to set handshake listener on network manager");
-                return false;
-            }
-
-            if (!reflect.setRemoteAddress(tunnelChannel, trueIp)) {
-                log.warning("failed to set remote address to " + trueIp);
-            }
-
-            var channel = tunnelChannel.pipeline().removeLast();
-            tunnelChannel.pipeline()
-                    .addLast("timeout", new ReadTimeoutHandler(connectionTimeoutSeconds))
-                    .addLast("legacy_query", (ChannelHandler) legacyPingHandler)
-                    .addLast("splitter", (ChannelHandler) packetSplitter)
-                    .addLast("decoder", (ChannelHandler) packetDecoder)
-                    .addLast("prepender", (ChannelHandler) packetPrepender)
-                    .addLast("encoder", (ChannelHandler) packetEncoder)
-                    .addLast("packet_handler", (ChannelHandler) networkManager);
-
-            if (!reflect.addToServerConnections(serverConnection, networkManager)) {
-                log.info("failed to add to server connections");
-
-                tunnelChannel.pipeline().remove("timeout");
-                tunnelChannel.pipeline().remove("legacy_query");
-                tunnelChannel.pipeline().remove("splitter");
-                tunnelChannel.pipeline().remove("decoder");
-                tunnelChannel.pipeline().remove("prepender");
-                tunnelChannel.pipeline().remove("encoder");
-                tunnelChannel.pipeline().remove("packet_handler");
-
-                tunnelChannel.pipeline().addLast(channel);
-
-                return false;
-            }
-
-            tunnelChannel.pipeline().fireChannelActive();
-            return true;*/
+        /*private boolean addChannelToMinecraftServer() {
             try {
                 Object channelManager = server.getClass().getField("cm").get(server);
                 Object serverChannelManager = channelManager.getClass().getField("serverChannelInitializer").get(channelManager);
-                serverChannelManager.getClass().getMethod("initChannel", new Class[]{Channel.class}).invoke(serverChannelManager, tunnelChannel);
+                serverChannelManager.getClass().getMethod("initChannel", Channel.class).invoke(serverChannelManager, tunnelChannel);
                 return true;
             } catch (NoSuchFieldException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                log.error("Failed to register channel! " + e);
                 return false;
             }
-        }
+        }*/
 
         private class MinecraftConnectionHandler extends SimpleChannelInboundHandler<ByteBuf> {
             MinecraftConnectionHandler() {
@@ -306,7 +187,7 @@ public class VelocitTcpTunnel {
             protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
                 tunnelChannel.writeAndFlush(msg).addListener(f -> {
                     if (!f.isSuccess()) {
-                        log.warning("failed to send data to tunnel");
+                        log.warn("failed to send data to tunnel");
                         minecraftChannel.disconnect();
                         tunnelChannel.disconnect();
                         return;
