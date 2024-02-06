@@ -18,6 +18,7 @@ Minecraft TCP | The TCP port for Velocity | ✔️
 Geyser UDP | The UDP port for Geyser | ❌
 Extra TCP Ports | Any extra TCP ports to expose | ❌
 Extra UDP Ports | Any extra UDP ports to expose | ❌
+IP Forwarding | The actual IP address of the client | ❌
 
 *any feature listed is planned*
 
