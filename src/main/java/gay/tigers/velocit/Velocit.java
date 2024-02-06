@@ -47,14 +47,11 @@ public class Velocit {
         this.proxy = proxy;
     }
 
-    private CreateTunnel createTunnel(){
+    private CreateTunnel createTunnel(TunnelType tunnelType, PortType portType){
         InetSocketAddress address = proxy.getBoundAddress();
         CreateTunnel createTunnel = new CreateTunnel();
         createTunnel.tunnelType = TunnelType.MinecraftJava;
-        if(Config.Current.ForwardBoth)
-            createTunnel.portType = PortType.BOTH;
-        else
-            createTunnel.portType = PortType.TCP;
+        createTunnel.portType = portType;
         createTunnel.localIp = address.getAddress().getHostAddress();
         createTunnel.localPort = address.getPort();
         createTunnel.agentId = keys.agentId;
@@ -70,13 +67,23 @@ public class Velocit {
             // Get status
             SessionStatus sessionStatus = playitApiClient.getStatus();
             keys.agentId = sessionStatus.agentId;
-            // Find/Create Tunnel
-            boolean found = false;
-            for (AccountTunnel tunnel : playitApiClient.listTunnels().tunnels){
-                if(tunnel.tunnelType != TunnelType.MinecraftJava) continue;
-                found = true;
+            // Add port if empty
+            if(Config.Current.TCPPorts.length == 0) {
+                Config.Current.TCPPorts = new int[] {
+                    server.getBoundAddress().getPort()
+                };
             }
-            if(!found) playitApiClient.createTunnel(createTunnel());
+            // Get/Create tunnels for TCP ports
+            for(int tcpPort : Config.Current.TCPPorts){
+                boolean found = false;
+                for (AccountTunnel tunnel : playitApiClient.listTunnels().tunnels){
+                    if(tunnel.tunnelType != TunnelType.MinecraftJava || tunnel.portType != PortType.TCP ||
+                            tunnel.toPort != tcpPort)
+                        continue;
+                    found = true;
+                }
+                if(!found) playitApiClient.createTunnel(createTunnel(TunnelType.MinecraftJava, PortType.TCP));
+            }
             StatusRunnable.status.set(3);
         } catch (IOException e) {
             logger.error("Failed to create tunnel! " + e);
