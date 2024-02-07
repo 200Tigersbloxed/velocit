@@ -72,6 +72,7 @@ public class Velocit {
                 Config.Current.TCPPorts = new int[] {
                     server.getBoundAddress().getPort()
                 };
+                Config.Save();
             }
             // Get/Create tunnels for TCP ports
             for(int tcpPort : Config.Current.TCPPorts){
