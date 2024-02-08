@@ -47,13 +47,13 @@ public class Velocit {
         this.proxy = proxy;
     }
 
-    private CreateTunnel createTunnel(TunnelType tunnelType, PortType portType){
+    private CreateTunnel createTunnel(int port, PortType portType){
         InetSocketAddress address = proxy.getBoundAddress();
         CreateTunnel createTunnel = new CreateTunnel();
-        createTunnel.tunnelType = TunnelType.MinecraftJava;
+        createTunnel.tunnelType = portType == PortType.TCP ? TunnelType.MinecraftJava : TunnelType.MinecraftBedrock;
         createTunnel.portType = portType;
         createTunnel.localIp = address.getAddress().getHostAddress();
-        createTunnel.localPort = address.getPort();
+        createTunnel.localPort = port;
         createTunnel.agentId = keys.agentId;
         createTunnel.portCount = 1;
         return createTunnel;
@@ -83,7 +83,7 @@ public class Velocit {
                         continue;
                     found = true;
                 }
-                if(!found) playitApiClient.createTunnel(createTunnel(TunnelType.MinecraftJava, PortType.TCP));
+                if(!found) playitApiClient.createTunnel(createTunnel(tcpPort, PortType.TCP));
             }
             StatusRunnable.status.set(3);
         } catch (IOException e) {
