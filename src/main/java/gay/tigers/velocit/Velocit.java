@@ -78,10 +78,11 @@ public class Velocit {
             for(int tcpPort : Config.Current.TCPPorts){
                 boolean found = false;
                 for (AccountTunnel tunnel : playitApiClient.listTunnels().tunnels){
-                    if(tunnel.tunnelType != TunnelType.MinecraftJava || tunnel.portType != PortType.TCP ||
-                            tunnel.toPort != tcpPort)
-                        continue;
-                    found = true;
+                    logger.info(tunnel.toString());
+                    if (tunnel.portType == PortType.TCP && tunnel.protocol.local_port == tcpPort) {
+                        found = true;
+                        break;
+                    }
                 }
                 if(!found) playitApiClient.createTunnel(createTunnel(tcpPort, PortType.TCP));
             }

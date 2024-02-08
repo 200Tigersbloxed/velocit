@@ -49,6 +49,9 @@ public class AccountTunnel {
     @JsonProperty("firewall_id")
     public String firewallId;
 
+    @JsonProperty
+    public Protocol protocol;
+
     @Override
     public String toString() {
         return "AccountTunnel{" +
