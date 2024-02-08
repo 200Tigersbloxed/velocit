@@ -24,7 +24,7 @@ import java.util.Objects;
 @Plugin(
         id = "velocit",
         name = "velocit",
-        version = "1.0-pre"
+        version = "1.1-pre"
 )
 public class Velocit {
     final PlayitKeys keys = new PlayitKeys();

@@ -6,7 +6,7 @@
 
     <groupId>gay.tigers</groupId>
     <artifactId>velocit</artifactId>
-    <version>1.0-pre</version>
+    <version>1.1-pre</version>
     <packaging>jar</packaging>
 
     <name>velocit</name>
