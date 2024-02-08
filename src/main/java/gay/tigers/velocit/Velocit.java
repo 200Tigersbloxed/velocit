@@ -78,7 +78,6 @@ public class Velocit {
             for(int tcpPort : Config.Current.TCPPorts){
                 boolean found = false;
                 for (AccountTunnel tunnel : playitApiClient.listTunnels().tunnels){
-                    logger.info(tunnel.toString());
                     if (tunnel.portType == PortType.TCP && tunnel.protocol.local_port == tcpPort) {
                         found = true;
                         break;
