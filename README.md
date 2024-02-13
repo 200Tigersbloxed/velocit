@@ -10,7 +10,7 @@ A [playit.gg](https://playit.gg) plugin for [Velocity](https://github.com/PaperM
 
 # What's supported?
 
-Pretty much anything that's TCP will work right now. Only one TCP port is forwarded; however, this can be shaped in the future.
+Pretty much anything that's TCP will work right now.
 
 Feature | Description | Supported
 --- | --- | ---
